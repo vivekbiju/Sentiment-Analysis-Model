@@ -1,0 +1,10 @@
+streamlit
+torch
+transformers[torch]
+accelerate>=1.1.0
+pandas
+pydantic
+pytest
+scikit-learn
+matplotlib
+seaborn

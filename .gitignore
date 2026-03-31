@@ -1,0 +1,22 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Large Model Weights (Keep the folder, ignore the files)
+models/*
+!models/.gitkeep
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Streamlit logs
+.streamlit/
