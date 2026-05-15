@@ -1,5 +1,5 @@
-import re
-from pydantic import BaseModel, field_validator
+import re # regular expression
+from pydantic import BaseModel, field_validator #data validator =pydantic
 
 class ReviewInput(BaseModel):
     text: str

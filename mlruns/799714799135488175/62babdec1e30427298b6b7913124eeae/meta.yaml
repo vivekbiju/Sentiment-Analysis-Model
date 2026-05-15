@@ -1,0 +1,14 @@
+artifact_uri: file:///C:\Users\vivek\python projects\project-2-sentiment-analysis\mlruns/799714799135488175/62babdec1e30427298b6b7913124eeae/artifacts
+end_time: 1778854911842
+entry_point_name: ''
+experiment_id: '799714799135488175'
+lifecycle_stage: active
+run_id: 62babdec1e30427298b6b7913124eeae
+run_name: DistilBERT_Slang_V1
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778854885703
+status: 3
+tags: []
+user_id: vivek

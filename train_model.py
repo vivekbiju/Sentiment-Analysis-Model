@@ -1,68 +1,66 @@
-import pandas as pd
-import torch
-from datasets import Dataset
-from transformers import (
-    AutoTokenizer, 
-    AutoModelForSequenceClassification, 
-    TrainingArguments, 
-    Trainer
-)
 import os
+import mlflow
+import pandas as pd
+from datasets import Dataset
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
 
 def train():
-    # 1. Load your custom slang data
-    df = pd.read_csv("data/slang_reviews.csv")
-    dataset = Dataset.from_pandas(df)
+    # --- STEP 0: EXPLICIT MLFLOW INITIALIZATION ---
+    # This ensures the folder and the .yaml "map" are created first
+    tracking_path = os.path.abspath("./mlruns")
+    mlflow.set_tracking_uri(f"file:///{tracking_path}")
     
-    # Split into Train and Test (80/20)
-    dataset = dataset.train_test_split(test_size=0.2)
+    experiment_name = "Internet_Slang_Sentiment"
     
-    # 2. Setup Tokenizer
-    model_name = "distilbert-base-uncased-finetuned-sst-2-english"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # Force create the experiment to generate meta.yaml if it's missing
+    exp = mlflow.get_experiment_by_name(experiment_name)
+    if exp is None:
+        print(f"Creating fresh experiment: {experiment_name}")
+        mlflow.create_experiment(experiment_name)
     
-    def tokenize_function(examples):
-        # We use a shorter max_length for slang reviews to speed up training
-        return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=128)
-    
-    tokenized_datasets = dataset.map(tokenize_function, batched=True)
-    
-    # 3. Load Model
-    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
-    
-    # 4. Define Training Arguments
-    training_args = TrainingArguments(
-        output_dir="./models/checkpoints",
-        eval_strategy="epoch",        # Corrected parameter name
-        learning_rate=2e-5,
-        per_device_train_batch_size=8,
-        num_train_epochs=3, 
-        weight_decay=0.01,
-        logging_dir='./logs',
-        save_total_limit=1,           # Prevents filling up your disk with checkpoints
-    )
-    
-    # 5. Initialize Trainer
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=tokenized_datasets["train"],
-        eval_dataset=tokenized_datasets["test"], # Corrected from evaluation_dataset
-        processing_class=tokenizer,              # Associates tokenizer with the trainer
-    )
-    
-    # 6. TRAIN!
-    print("🚀 Starting Fine-Tuning on Slang Data...")
-    trainer.train()
-    
-    # 7. SAVE THE "BRAIN"
-    save_path = "./models/sentiment_model"
-    os.makedirs(save_path, exist_ok=True)
-    
-    # This saves the model weights AND the tokenizer config
-    trainer.save_model(save_path) 
-    
-    print(f"✅ Custom Model saved to {save_path}")
+    mlflow.set_experiment(experiment_name)
+
+    with mlflow.start_run(run_name="DistilBERT_Slang_V1"):
+        # 1. Load Data
+        df = pd.read_csv("data/slang_reviews.csv")
+        dataset = Dataset.from_pandas(df).train_test_split(test_size=0.2)
+        
+        # 2. Tokenizer & Model
+        model_name = "distilbert-base-uncased-finetuned-sst-2-english"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+        
+        tokenized_datasets = dataset.map(lambda x: tokenizer(x["text"], padding="max_length", truncation=True, max_length=128), batched=True)
+        
+        # 3. Training Args (report_to="none" avoids conflicts)
+        training_args = TrainingArguments(
+            output_dir="./models/checkpoints",
+            eval_strategy="epoch",
+            learning_rate=2e-5,
+            num_train_epochs=3,
+            report_to="none", # We will log manually for total control
+        )
+        
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=tokenized_datasets["train"],
+            eval_dataset=tokenized_datasets["test"],
+        )
+        
+        print("🚀 Training...")
+        train_result = trainer.train()
+        
+        # 4. Manual Logging - The most reliable method for your portfolio
+        mlflow.log_metrics(train_result.metrics)
+        mlflow.set_tag("context", "internet_slang")
+        
+        # 5. Save Artifacts
+        save_path = "./models/sentiment_model"
+        trainer.save_model(save_path)
+        mlflow.log_artifacts(save_path, artifact_path="model")
+        
+        print(f"✅ Finished! Check MLflow UI now.")
 
 if __name__ == "__main__":
     train()
