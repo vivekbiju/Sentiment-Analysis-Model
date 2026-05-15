@@ -1,66 +1,78 @@
 import os
 import mlflow
 import pandas as pd
+from pathlib import Path
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
 
+
+
+
 def train():
-    # --- STEP 0: EXPLICIT MLFLOW INITIALIZATION ---
-    # This ensures the folder and the .yaml "map" are created first
-    tracking_path = os.path.abspath("./mlruns")
-    mlflow.set_tracking_uri(f"file:///{tracking_path}")
+    # --- ULTRA-ROBUST PATH LOGIC ---
+    # This looks for the 'data' folder in the directory where the script is running
+    # This works better for GitHub Actions 'steps'
+    root_path = Path(os.getcwd())
+    data_path = root_path / "data" / "slang_reviews.csv"
+    tracking_path = root_path / "mlruns"
     
-    experiment_name = "Internet_Slang_Sentiment"
+    # Ensure directories exist
+    tracking_path.mkdir(parents=True, exist_ok=True)
     
-    # Force create the experiment to generate meta.yaml if it's missing
-    exp = mlflow.get_experiment_by_name(experiment_name)
-    if exp is None:
-        print(f"Creating fresh experiment: {experiment_name}")
-        mlflow.create_experiment(experiment_name)
+    # Set MLflow
+    mlflow.set_tracking_uri(tracking_path.as_uri())
     
-    mlflow.set_experiment(experiment_name)
-
-    with mlflow.start_run(run_name="DistilBERT_Slang_V1"):
-        # 1. Load Data
-        df = pd.read_csv("data/slang_reviews.csv")
-        dataset = Dataset.from_pandas(df).train_test_split(test_size=0.2)
+    # Check for data file
+    if not data_path.exists():
+        # Let's print exactly where we are looking so we can debug if it fails
+        print(f"Current Working Directory: {os.getcwd()}")
+        print(f"Looking for data at: {data_path}")
+        raise FileNotFoundError(f"Missing data file at {data_path}")  
+            
+    df = pd.read_csv(data_path)
+    dataset = Dataset.from_pandas(df).train_test_split(test_size=0.2)
+    
+    # 2. Tokenizer & Model
+    model_name = "distilbert-base-uncased-finetuned-sst-2-english"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+    
+    tokenized_datasets = dataset.map(lambda x: tokenizer(x["text"], padding="max_length", truncation=True, max_length=128), batched=True)
+    
+    # 3. Training Args
+    training_args = TrainingArguments(
+        output_dir="./models/checkpoints",
+        eval_strategy="epoch",
+        learning_rate=2e-5,
+        num_train_epochs=1, # Reduced for CI/CD speed
+        report_to="none",
+    )
+    
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_datasets["train"],
+        eval_dataset=tokenized_datasets["test"],
+    )
+    
+    print("🚀 Training...")
+    train_result = trainer.train()
+    
+    # 4. Logging
+    mlflow.log_metrics(train_result.metrics)
+    
+    
+    print(f"✅ Finished! Check MLflow UI.")
+# --- 5. Save Artifacts (FIXED) ---
+        # Define the path using Path logic
+    save_path = root_path / "models" / "sentiment_model"
         
-        # 2. Tokenizer & Model
-        model_name = "distilbert-base-uncased-finetuned-sst-2-english"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
-        
-        tokenized_datasets = dataset.map(lambda x: tokenizer(x["text"], padding="max_length", truncation=True, max_length=128), batched=True)
-        
-        # 3. Training Args (report_to="none" avoids conflicts)
-        training_args = TrainingArguments(
-            output_dir="./models/checkpoints",
-            eval_strategy="epoch",
-            learning_rate=2e-5,
-            num_train_epochs=3,
-            report_to="none", # We will log manually for total control
-        )
-        
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=tokenized_datasets["train"],
-            eval_dataset=tokenized_datasets["test"],
-        )
-        
-        print("🚀 Training...")
-        train_result = trainer.train()
-        
-        # 4. Manual Logging - The most reliable method for your portfolio
-        mlflow.log_metrics(train_result.metrics)
-        mlflow.set_tag("context", "internet_slang")
-        
-        # 5. Save Artifacts
-        save_path = "./models/sentiment_model"
-        trainer.save_model(save_path)
-        mlflow.log_artifacts(save_path, artifact_path="model")
-        
-        print(f"✅ Finished! Check MLflow UI now.")
-
+    # Ensure the directory exists before saving
+    save_path.mkdir(parents=True, exist_ok=True)
+    
+    print(f"💾 Saving model to: {save_path}")
+    trainer.save_model(str(save_path))
+    mlflow.log_artifacts(str(save_path), artifact_path="model")
+    
 if __name__ == "__main__":
     train()

@@ -11,19 +11,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository Code
+      uses: actions/checkout@v4
     
-    - name: Set up Python
+    - name: Set up Python Environment
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    - name: Install dependencies
+    - name: Install System and Python Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest transformers torch demoji google-genai pillow python-dotenv shap
-        # If you have a requirements.txt, use: pip install -r requirements.txt
+        pip install pytest transformers torch torchvision datasets demoji google-genai pillow python-dotenv shap pandas mlflow
 
-    - name: Run Unit Tests
+    - name: Pre-Create Infrastructure Directories
       run: |
-        pytest tests/test_preprocessor.py
+        # Ensure our target folders match the project layout expectations
+        mkdir -p data
+        mkdir -p models/sentiment_model
+        mkdir -p mlruns
+
+    - name: Generate Mock Dataset for Runner Training
+      run: |
+        # Creates a minimum layout structure so train_model.py doesn't crash on data extraction
+        echo "text,label" > data/slang_reviews.csv
+        echo "this is fire,1" >> data/slang_reviews.csv
+        echo "this is mid,0" >> data/slang_reviews.csv
+        echo "absolute banger,1" >> data/slang_reviews.csv
+        echo "garbage skip it,0" >> data/slang_reviews.csv
+
+    - name: Run Automated Test Pipeline (Pytest)
+      run: |
+        # Triggers our assertions in tests/test_logic.py
+        pytest tests/test_logic.py
