@@ -1,4 +1,4 @@
-<img width="1895" height="812" alt="image" src="https://github.com/user-attachments/assets/680c86c6-0132-4855-91c0-0e69bc4ef1cc" />
+<img width="1845" height="827" alt="image" src="https://github.com/user-attachments/assets/e2220d46-04ab-45fc-bef7-a5edbe493a6a" />
 
 # Slang-Aware Sentiment Engine: A Compound AI Architecture
 
@@ -12,7 +12,7 @@ This architecture balances computational efficiency with deep contextual awarene
 
 The application is structured as a dual-layer inference pipeline:
 1. **The Core Compute Layer (Local):** A fine-tuned DistilBERT model optimized down to an inference latency of **~49 ms** using Hugging Face `optimum` and ONNX quantization. It handles rapid, cost-effective initial sentiment classification.
-2. **The Agentic Layer (Cloud):** A Gemini Flash Latest LLM agent that acts as an intelligent triage system. When the local model encounters highly complex slang, regional dialects, or mixed contextual ambiguity, the agent is triggered to inject cultural semantics, explanation mapping, and validation.
+2. **The Agentic Layer (Cloud):** A Gemini 1.5 Flash LLM agent that acts as an intelligent triage system. When the local model encounters highly complex slang, regional dialects, or mixed contextual ambiguity, the agent is triggered to inject cultural semantics, explanation mapping, and validation.
 
 Additionally, the dashboard embeds **SHAP (Shapley Additive Explanations)** to calculate exact token-level feature attribution heatmaps, offering full machine learning interpretability (XAI).
 
@@ -48,7 +48,20 @@ Additionally, the dashboard embeds **SHAP (Shapley Additive Explanations)** to c
 ├── MODEL_CARD.md            # Regional dialect bias & model governance card
 └── requirements.txt         # Pinned production dependency matrix
 
-🛠️ Verification & Execution Guide1. PrerequisitesEnsure you have Docker Desktop installed and your Gemini API Key ready.2. Standard Local Python Execution (Alternative)To verify or run individual pipeline components outside a container:Bash# Install pinned dependencies
+```
+
+---
+
+## 🛠️ Verification & Execution Guide
+
+### 1. Prerequisites
+Ensure you have Docker Desktop installed and running on your system, and have a valid Gemini API Key ready.
+
+### 2. Standard Local Python Execution (Alternative)
+To verify or run individual pipeline components outside a container:
+
+```bash
+# Install pinned dependencies
 pip install -r requirements.txt
 
 # Run the localized ONNX inference validation test
@@ -56,7 +69,14 @@ python src/model_engine.py
 
 # Launch the MLflow UI server locally
 mlflow ui
-3. Containerized Production Launch (Docker)To build the fully isolated, cross-platform container image and launch the system:Bash# Build the production docker image
+```
+
+### 3. Containerized Production Launch (Docker)
+
+To build the fully isolated, cross-platform container image and launch the system:
+
+```bash
+# Build the production docker image
 docker build -t sentiment-agent-app:latest .
 
 # Run the container isolated on Port 8501
@@ -67,9 +87,23 @@ docker run -d \
   --name sentiment-prod-container \
   --restart always \
   sentiment-agent-app:latest
-Once the container reports a healthy status, navigate to your local browser interface:👉 http://localhost:8501📊 Evaluation & Metrics OutputPlaintextINFO:src.model_engine:🚀 Loading optimized ONNX model from /app/models/onnx_model
+```
+
+
+Once the container reports a healthy status, navigate to your local browser interface to interact with the system:
+👉 http://localhost:8501
+
+---
+
+## 📊 Evaluation & Production Metrics Output
+
+```text
+INFO:src.model_engine:🚀 Loading optimized ONNX model from /app/models/onnx_model
 INFO:src.model_engine:✅ ONNX pipeline loaded successfully with Optimum!
 INFO:src.model_engine:⚡ ONNX Inference Latency: 49.37 ms for 1 text inputs.
 Test Result: [{'label': 'POSITIVE', 'score': 0.8498}]
-Advanced logging parameters track $F1$-curves directly into mlruns database, visible instantly via the local MLflow server.
----
+```
+<img width="1167" height="327" alt="image" src="https://github.com/user-attachments/assets/76145d85-bfd1-47db-8eff-b199729086d1" />
+<img width="1148" height="342" alt="image" src="https://github.com/user-attachments/assets/b777b65f-a16c-4a40-9528-b1a6b8bcf090" />
+
+Advanced evaluation logs, precision, recall, and F1-curves are continuously tracked into the local mlruns database, visible instantly via your local MLflow server.
