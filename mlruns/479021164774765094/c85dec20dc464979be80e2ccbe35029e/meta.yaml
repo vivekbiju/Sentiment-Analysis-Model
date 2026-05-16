@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/vivek/python%20projects/project-2-sentiment-analysis/mlruns/479021164774765094/c85dec20dc464979be80e2ccbe35029e/artifacts
+end_time: 1778941478480
+entry_point_name: ''
+experiment_id: '479021164774765094'
+lifecycle_stage: active
+run_id: c85dec20dc464979be80e2ccbe35029e
+run_name: DistilBERT_ONNX_Ready_V2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778941452727
+status: 3
+tags: []
+user_id: vivek
