@@ -1,6 +1,5 @@
 streamlit
 torch
-transformers[torch]
 accelerate>=1.1.0
 pandas
 pydantic
@@ -15,5 +14,6 @@ torchvision
 shap
 pytest
 pillow
-optimum[onnxruntime]
 scikit-learn
+transformers>=4.44.0
+optimum[onnxruntime]>=1.16.0
