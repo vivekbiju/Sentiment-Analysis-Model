@@ -1,46 +1,76 @@
+import numpy as np
 import os
 import mlflow
 import pandas as pd
+from pathlib import Path
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
+# --- NEW: Import scikit-learn metrics ---
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+# ----------------------------------------
+
+def compute_metrics(eval_pred):
+    """
+    Computes production metrics for imbalanced slang datasets.
+    Logs Accuracy, Precision, Recall, and F1-Score.
+    """
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=1)
+    
+    # Calculate metrics
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        labels, 
+        predictions, 
+        average="binary", 
+        zero_division=0
+    )
+    acc = accuracy_score(labels, predictions)
+    
+    # Return dictionary matching HF expectations
+    return {
+        "accuracy": acc,
+        "f1": f1,
+        "precision": precision,
+        "recall": recall
+    }
 
 def train():
-
-    # This ensures the folder and the .yaml "map" are created first
-    tracking_path = os.path.join(os.getcwd(), "mlruns")
-    if not os.path.exists(tracking_path):
-        os.makedirs(tracking_path)
-    mlflow.set_tracking_uri(f"file:///{tracking_path}")
-
-    experiment_name = "Internet_Slang_Sentiment"
+    root_path = Path(os.getcwd())
+    data_path = root_path / "data" / "slang_reviews.csv"
+    tracking_path = root_path / "mlruns"
     
-    # Force create the experiment to generate meta.yaml if it's missing
+    tracking_path.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri(tracking_path.as_uri())
+    
+    experiment_name = "Internet_Slang_Sentiment"
     exp = mlflow.get_experiment_by_name(experiment_name)
     if exp is None:
-        print(f"Creating fresh experiment: {experiment_name}")
         mlflow.create_experiment(experiment_name)
-    
     mlflow.set_experiment(experiment_name)
 
-    with mlflow.start_run(run_name="DistilBERT_Slang_V1"):
-        # 1. Load Data
-        df = pd.read_csv("data/slang_reviews.csv")
+    with mlflow.start_run(run_name="DistilBERT_ONNX_Ready_V2"):
+        if not data_path.exists():
+            raise FileNotFoundError(f"Missing data file at {data_path}")
+            
+        df = pd.read_csv(data_path)
         dataset = Dataset.from_pandas(df).train_test_split(test_size=0.2)
         
-        # 2. Tokenizer & Model
         model_name = "distilbert-base-uncased-finetuned-sst-2-english"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
         
-        tokenized_datasets = dataset.map(lambda x: tokenizer(x["text"], padding="max_length", truncation=True, max_length=128), batched=True)
+        tokenized_datasets = dataset.map(
+            lambda x: tokenizer(x["text"], padding="max_length", truncation=True, max_length=128), 
+            batched=True
+        )
         
-        # 3. Training Args (report_to="none" avoids conflicts)
         training_args = TrainingArguments(
             output_dir="./models/checkpoints",
             eval_strategy="epoch",
             learning_rate=2e-5,
-            num_train_epochs=3,
-            report_to="none", #log manually for total control
+            num_train_epochs=3, # Multi-epoch run to track curve in UI
+            logging_steps=10,
+            report_to="mlflow", # Automatically pushes Hugging Face logs to MLflow
         )
         
         trainer = Trainer(
@@ -48,21 +78,17 @@ def train():
             args=training_args,
             train_dataset=tokenized_datasets["train"],
             eval_dataset=tokenized_datasets["test"],
+            compute_metrics=compute_metrics, # --- NEW: Injected advanced metrics ---
         )
         
-        print("🚀 Training...")
-        train_result = trainer.train()
+        print("🚀 Launching Training Run with Advanced Metrics Tracking...")
+        trainer.train()
         
-        # 4. Manual Logging - The most reliable method for your portfolio
-        mlflow.log_metrics(train_result.metrics)
-        mlflow.set_tag("context", "internet_slang")
+        save_path = root_path / "models" / "sentiment_model"
+        save_path.mkdir(parents=True, exist_ok=True)
+        trainer.save_model(str(save_path))
         
-        # 5. Save Artifacts
-        save_path = "./models/sentiment_model"
-        trainer.save_model(save_path)
-        mlflow.log_artifacts(save_path, artifact_path="model")
-        
-        print(f"✅ Finished! Check MLflow UI now.")
+        print(f"✅ Finished! Run 'mlflow ui' to check performance metrics.")
 
 if __name__ == "__main__":
     train()

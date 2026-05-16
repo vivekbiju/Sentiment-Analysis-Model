@@ -19,6 +19,6 @@ def test_emoji_cleaning():
 def test_api_key_check():
     """Ensure the SentimentAgent raises an error if no API key is present."""
     from src.agent import SentimentAgent
-    os.environ["GEMINI_API_KEY"] = "" # Clear it for the test
+    os.environ["GEMINI_API_KEY"] = ""
     with pytest.raises(ValueError):
         SentimentAgent(api_key=None)

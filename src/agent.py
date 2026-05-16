@@ -15,7 +15,7 @@ class SentimentAgent:
         
         self.client = genai.Client(api_key=self.api_key)
         # Ensure emoji codes are ready for multimodal text processing
-        demoji.download_codes()
+        #demoji.download_codes()
 
     def explain_sentiment(self, text, sentiment_label, image_file=None):
         """

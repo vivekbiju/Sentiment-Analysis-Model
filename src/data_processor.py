@@ -1,4 +1,4 @@
-import re # regular expression
+import re 
 from pydantic import BaseModel, field_validator #data validator =pydantic
 
 class ReviewInput(BaseModel):
@@ -25,5 +25,4 @@ class TextCleaner:
         # 3. Reduce repeated characters
         clean = re.sub(r'(.)\1{2,}', r'\1\1', clean)
         
-        # CRITICAL: This return sends the string back to app.py
         return str(clean).strip()

@@ -1,4 +1,4 @@
-# --- Python & Environments ---
+# Python & Environments 
 __pycache__/
 *.py[cod]
 *$py.class
@@ -9,26 +9,24 @@ venv/
 ENV/
 .env
 
-# --- MLflow (Experiment Tracking) ---
-# We ignore the tracking data so your GitHub doesn't get thousands of small files
+# MLflow (Experiment Tracking) 
 mlruns/
 mlflow.db
 outputs/
 
-# --- XAI & Visualization (SHAP/IPython) ---
+# XAI & Visualization (SHAP/IPython) 
 .ipython/
 .matplotlib/
 
-# --- Large Model Weights ---
-# Ignore the actual heavy weights, but keep the folder structure
+# Large Model Weights 
 models/*
 !models/.gitkeep
 models/checkpoints/
 
-# --- Logs & Metadata ---
+# Logs & Metadata 
 logs/
 .streamlit/
 
-# --- OS Specific Files ---
+# OS Specific Files 
 .DS_Store
 Thumbs.db

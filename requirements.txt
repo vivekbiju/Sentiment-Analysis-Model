@@ -9,9 +9,11 @@ scikit-learn
 matplotlib
 seaborn
 mlflow
-pytest
-shap
-google-genai
+google-genai 
 demoji
 torchvision
+shap
+pytest
 pillow
+optimum[onnxruntime]
+scikit-learn
