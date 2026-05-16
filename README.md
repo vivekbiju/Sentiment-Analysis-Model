@@ -91,6 +91,7 @@ docker run -d \
 
 
 Once the container reports a healthy status, navigate to your local browser interface to interact with the system:
+
 👉 http://localhost:8501
 
 ---
