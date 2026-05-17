@@ -1,3 +1,6 @@
+APP LINK: https://huggingface.co/spaces/Vivekbiju0/multi-agent-sentiment-analysis
+
+
 <img width="1845" height="827" alt="image" src="https://github.com/user-attachments/assets/e2220d46-04ab-45fc-bef7-a5edbe493a6a" />
 
 # Slang-Aware Sentiment Engine: A Compound AI Architecture
